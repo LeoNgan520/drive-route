@@ -454,9 +454,9 @@ function drawMap(){const cv=$('#mini'),x=cv.getContext('2d'),W=cv.width,H=cv.hei
 /* ================= CONTROLS ================= */
 function syncBtns(){$('#bPlay').textContent=G.playing?'⏸ 暫停':'▶ 播放';$$('[data-spd]').forEach(b=>b.classList.toggle('on',+b.dataset.spd===G.speed));$('#bAll').classList.toggle('on',G.all);$('#bVoice').classList.toggle('on',G.voice);
   $('#bRate').textContent='語速 '+RATES[G.rate].label;$('#bSlow').classList.toggle('on',G.slowMo);}
+const blurAfter=fn=>e=>{fn(e);e.currentTarget.blur();};
 $('#bRate').addEventListener('click',blurAfter(()=>{G.rate=(G.rate+1)%RATES.length;savePrefs();syncBtns();}));
 $('#bSlow').addEventListener('click',blurAfter(()=>{G.slowMo=!G.slowMo;savePrefs();syncBtns();}));
-const blurAfter=fn=>e=>{fn(e);e.currentTarget.blur();};
 $$('[data-line]').forEach(b=>b.addEventListener('click',blurAfter(()=>{$('#done').hidden=true;G.all=false;loadLine(+b.dataset.line);G.playing=true;syncBtns();})));
 $$('[data-spd]').forEach(b=>b.addEventListener('click',blurAfter(()=>{G.speed=+b.dataset.spd;syncBtns();})));
 $('#bPlay').addEventListener('click',blurAfter(()=>{G.playing=!G.playing;if(!G.playing)Voice.clear();syncBtns();}));
