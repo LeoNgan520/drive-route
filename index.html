@@ -1,0 +1,486 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="科目三"></head><body><title>坂田科目三路線導覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;800&family=Oxanium:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: full-bleed ride-along view; route list on the right, playback strip docked at the bottom. One dark cockpit theme; the HUD is drawn at 1280x800 and scaled to the screen. */
+  --ink:#0b1210; --panel:rgba(10,17,15,.86); --panel-solid:#111b18; --raise:#1b2a25; --line:#2c443c;
+  --text:#ebf3ef; --muted:#93aaa1; --amber:#ffb400; --ok:#34d399; --quiet:#7cc4ff;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-num:"Oxanium","Noto Sans SC",ui-monospace,monospace;
+  --bar-h:84px;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(--text);font-family:var(--f-body);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#app{position:fixed;left:0;top:0;width:100%;height:100%;touch-action:manipulation}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0}
+button{font:inherit;color:inherit;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;touch-action:manipulation;line-height:1.2}
+button:hover{border-color:#4a6d61}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.on{background:var(--amber);color:#1a1200;border-color:var(--amber)}
+.panel{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+#status{left:14px;top:14px;padding:10px 14px;min-width:220px}
+#stLine{font-family:var(--f-num);font-size:26px;font-weight:700}
+#stSub{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;margin-top:2px}
+#prog{height:6px;border-radius:3px;background:#22352f;margin-top:8px;overflow:hidden}
+#progBar{height:100%;width:0;background:var(--amber)}
+#mini{position:absolute;right:14px;top:14px;width:300px;height:186px;border-radius:12px;border:1px solid var(--line)}
+#items{right:14px;top:212px;width:300px;bottom:calc(var(--bar-h) + 22px);overflow:auto;padding:6px 0}
+#items button{display:flex;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:0;padding:5px 12px;color:var(--muted);font-size:15px}
+#items button:hover{background:rgba(255,255,255,.04)}
+#items .n{font-family:var(--f-num);width:22px;text-align:right;font-variant-numeric:tabular-nums}
+#items .tag{margin-left:auto;font-size:11px;color:var(--quiet);border:1px solid #2f5670;border-radius:4px;padding:1px 5px;align-self:center}
+#items .active{color:var(--text);background:rgba(255,180,0,.16)}
+#items .done{color:#9fcbb8}
+#sub{position:absolute;left:50%;transform:translateX(-50%);top:18px;padding:10px 20px;border-radius:999px;background:rgba(6,10,9,.82);border:1px solid var(--line);font-size:22px;font-weight:700;white-space:nowrap;max-width:52%;overflow:hidden;text-overflow:ellipsis}
+#sub::before{content:"考官";font-size:12px;font-weight:600;color:#1a1200;background:var(--amber);border-radius:4px;padding:2px 6px;margin-right:10px;vertical-align:3px}
+#sub.quiet::before{content:"提示";background:var(--quiet)}
+#note{position:absolute;left:50%;transform:translateX(-50%);top:76px;font-size:14px;color:var(--quiet);background:rgba(6,10,9,.75);padding:4px 12px;border-radius:999px}
+#next{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--bar-h) + 20px);font-size:17px;font-weight:600;color:var(--amber);background:rgba(6,10,9,.78);padding:6px 16px;border-radius:999px;white-space:nowrap}
+#spd{position:absolute;left:14px;bottom:calc(var(--bar-h) + 20px);font-family:var(--f-num);font-size:40px;font-weight:700;background:rgba(6,10,9,.7);padding:4px 14px;border-radius:12px;font-variant-numeric:tabular-nums}
+#slowTag{position:absolute;left:14px;bottom:calc(var(--bar-h) + 84px);font-size:14px;font-weight:700;color:#0b1210;background:var(--quiet);padding:3px 10px;border-radius:999px}
+#spd small{font-size:13px;color:var(--muted);margin-left:4px}
+#bar{position:absolute;left:0;right:0;bottom:0;height:var(--bar-h);background:linear-gradient(#101a17,#070c0b);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:10px;padding-inline:16px;box-sizing:border-box;flex-wrap:nowrap}
+#bar .grp{display:flex;gap:6px;align-items:center}
+#bar .sep{width:1px;height:40px;background:var(--line);margin-inline:6px}
+#bar button{font-size:15px;font-weight:600;min-width:44px;padding:8px 10px;white-space:nowrap;flex-shrink:0}
+#bar{gap:8px}#bar .sep{margin-inline:2px}
+#bPlay{min-width:96px;font-size:18px}
+.lab{font-size:12px;color:var(--muted);margin-right:2px}
+.overlay{position:absolute;inset:0;background:rgba(4,8,7,.72);display:grid;place-items:center;padding:16px;box-sizing:border-box}
+.card{background:var(--panel-solid);border:1px solid var(--line);border-radius:16px;max-width:760px;width:100%;padding:26px 28px;box-sizing:border-box}
+h1{font-size:32px;margin:0 0 4px;font-weight:800;text-wrap:balance}
+h1 em{font-style:normal;color:var(--amber)}
+.sub{color:var(--muted);margin:0 0 18px;font-size:15px;line-height:1.6}
+.seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.seg button{font-size:16px;font-weight:600;padding:10px 16px}
+.cta{font-size:19px;font-weight:800;padding:14px 32px;background:var(--amber);color:#1a1200;border-color:var(--amber)}
+#rotate{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-size:24px;font-weight:700;text-align:center;padding:24px}
+</style>
+
+<div id="app">
+  <canvas id="gl"></canvas>
+  <div id="hud">
+    <div id="status" class="panel">
+      <div id="stLine">3号线</div>
+      <div id="stSub">第 1 項 · 0 m</div>
+      <div id="prog"><div id="progBar"></div></div>
+    </div>
+    <canvas id="mini" width="600" height="372"></canvas>
+    <div id="items" class="panel"></div>
+    <div id="sub" hidden></div>
+    <div id="note" hidden>考試時這一項沒有語音，要自己記住位置</div>
+    <div id="next" hidden></div>
+    <div id="slowTag" hidden>慢動作 · 等語音</div>
+    <div id="spd">0<small>km/h</small></div>
+    <div id="bar">
+      <div class="grp"><span class="lab">路線</span><button type="button" data-line="1">1号线</button><button type="button" data-line="2">2号线</button><button type="button" data-line="3">3号线</button></div>
+      <div class="sep"></div>
+      <div class="grp"><button type="button" id="bPrev" aria-label="上一項">⏮ 上一項</button><button type="button" id="bPlay">⏸ 暫停</button><button type="button" id="bNext" aria-label="下一項">下一項 ⏭</button></div>
+      <div class="sep"></div>
+      <div class="grp"><span class="lab">速度</span><button type="button" data-spd="1">×1</button><button type="button" data-spd="1.5">×1.5</button><button type="button" data-spd="2">×2</button></div>
+      <div class="sep"></div>
+      <div class="grp"><button type="button" id="bAll">連播 1→2→3</button><button type="button" id="bVoice">語音</button><button type="button" id="bRate">語速 慢</button><button type="button" id="bSlow">說話時慢動作</button></div>
+    </div>
+    <div id="start" class="overlay">
+      <div class="card">
+        <h1>坂田科目三 <em>路線導覽</em></h1>
+        <p class="sub">車會自動按考場路線圖的路線和車道開（包括起步變道、自主變道、右轉專用道和公交港灣），考官用普通話報每一個項目，之後用藍色「提示」讀出圖上註明的操作（打燈、點剎、變道、限速、停車要求）。每次自主變道前也會提示。公交車站、學校區域和人行橫道在考試時沒有語音，會另外標明，方便你記位置。</p>
+        <div class="seg" id="startSeg">
+          <button type="button" data-first="all" class="on">連播 1→2→3</button>
+          <button type="button" data-first="1">只看 1号线</button>
+          <button type="button" data-first="2">只看 2号线</button>
+          <button type="button" data-first="3">只看 3号线</button>
+        </div>
+        <button type="button" class="cta" id="bStart">開始播放</button>
+        <p class="sub" style="margin:16px 0 0;font-size:13px">空白鍵暫停，← → 跳上一項或下一項，點右邊清單可以直接跳到那一項。</p>
+      </div>
+    </div>
+    <div id="done" class="overlay" hidden>
+      <div class="card" style="max-width:520px;text-align:center">
+        <h1 id="doneTitle">三條路線播放完畢</h1>
+        <p class="sub" id="doneSub">可以再看一次，或者選一條路線重看。</p>
+        <button type="button" class="cta" id="bAgain">從 1号线再播一次</button>
+      </div>
+    </div>
+  </div>
+  <div id="rotate" hidden>請把 iPad 橫放<br><span style="font-size:15px;color:var(--muted);font-weight:400">這個畫面需要橫向</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;};
+const sstep=t=>t*t*(3-2*t);
+
+/* ================= MAP (考場路線圖的像素 → 米) ================= */
+const S=0.6;                       // 1 px on the chart ≈ 0.6 m (2号线 ≈ 3 km, matches the 3KM sign)
+const P=(x,y)=>({x:x*S,y:y*S});
+const V={add:(a,b)=>({x:a.x+b.x,y:a.y+b.y}),sub:(a,b)=>({x:a.x-b.x,y:a.y-b.y}),mul:(a,k)=>({x:a.x*k,y:a.y*k}),
+  len:a=>Math.hypot(a.x,a.y),dot:(a,b)=>a.x*b.x+a.y*b.y,dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),
+  norm:a=>{const l=Math.hypot(a.x,a.y)||1;return{x:a.x/l,y:a.y/l};},right:t=>({x:-t.y,y:t.x}),lerp:(a,b,k)=>({x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k})};
+const RW=7,XW=10.5,R=10;           // 2-lane half width, width with an added lane, junction radius
+const IN=1.75,OUT=5.25,EXT=8.75;   // lane centres measured from the centre line: inner / outer / added lane
+// road centre lines (image-2 coordinates)
+const N={NW:P(160,346),NM:P(720,346),NE:P(1372,346),EN:P(1875,346),X:P(160,858),K0:P(160,1140),K1:P(240,1210),SM:P(720,1159),SE:P(1275,1100),ES:P(1775,1135)};
+function cubic(a,b,c,d,n){const o=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;o.push({x:u*u*u*a.x+3*u*u*t*b.x+3*u*t*t*c.x+t*t*t*d.x,y:u*u*u*a.y+3*u*u*t*b.y+3*u*t*t*c.y+t*t*t*d.y});}return o;}
+const CURVE=cubic(N.K0,P(160,1185),P(195,1215),N.K1,14);CURVE[0]=N.K0;CURVE[14]=N.K1;
+const qy=y=>P(1372-(y-346)*97/754,y);            // point on 清庆路 at chart y
+const ny=x=>P(x,1210-(x-240)*110/1035);           // point on 清宁路 (west of 清庆路) at chart x
+const ey=x=>P(x,1100+(x-1275)*35/500);            // point on 清宁路 east of 清庆路
+function mkPath(src){const pts=[src[0]];for(let i=1;i<src.length;i++){if(V.dist(src[i],pts[pts.length-1])>1e-3)pts.push(src[i]);}const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+V.dist(pts[i-1],pts[i]));return{pts,cum,len:cum[cum.length-1]};}
+function idxAt(p,s){let lo=0,hi=p.pts.length-2;while(lo<hi){const m=(lo+hi+1)>>1;if(p.cum[m]<=s)lo=m;else hi=m-1;}return Math.max(0,lo);}
+function pathAt(p,s){s=clamp(s,0,p.len);const i=idxAt(p,s);const a=p.pts[i],b=p.pts[i+1];const L=p.cum[i+1]-p.cum[i]||1;const t=V.mul(V.sub(b,a),1/L);return{p:V.add(a,V.mul(t,s-p.cum[i])),t,i,f:(s-p.cum[i])/L};}
+function projectPath(p,q){let best={d:1e9,s:0};for(let i=0;i<p.pts.length-1;i++){const a=p.pts[i],b=p.pts[i+1],ab=V.sub(b,a),L=p.cum[i+1]-p.cum[i];if(L<1e-6)continue;const k=clamp(V.dot(V.sub(q,a),ab)/(L*L),0,1);const d=V.dist(q,V.add(a,V.mul(ab,k)));if(d<best.d)best={d,s:p.cum[i]+k*L,t:V.mul(ab,1/L)};}return best;}
+function subPoly(p,s0,s1){const o=[pathAt(p,s0).p];for(let i=0;i<p.pts.length;i++){if(p.cum[i]>s0+1e-3&&p.cum[i]<s1-1e-3)o.push(p.pts[i]);}o.push(pathAt(p,s1).p);return o;}
+
+// road polylines; side +1 = right of the drawing direction, -1 = left
+const ROADS=[{pts:[N.NW,N.NM,N.NE,N.EN]},{pts:[N.NW,N.X,...CURVE,N.SM,N.SE,N.ES]},{pts:[N.NM,N.SM]},{pts:[N.NE,N.SE]}].map(r=>Object.assign(r,mkPath(r.pts)));
+// added lanes, bays and right-turn lanes read off the chart
+const EXTRA=[
+  {road:0,side:-1,a:N.NW,b:P(950,346)},        // 清祥路西行：清新路口至 950 为 3 车道
+  {road:0,side:-1,a:P(1530,346),b:N.EN},        // 清祥路东段西行 3 车道（1号线掉头后进入中间车道）
+  {road:0,side:1,a:P(805,346),b:P(1090,346)},   // 清祥路东行港湾（2号线起点、公交站）
+  {road:0,side:1,a:P(172,346),b:P(360,346)},    // 清新路右转专用道汇入清祥路（3号线起点）
+  {road:1,side:-1,a:N.NW,b:P(160,500)},         // 清新路北行右转专用道
+  {road:1,side:-1,a:ey(1460),b:N.ES},           // 清宁路东段西行 3 车道（1号线起点在最右车道）
+  {road:2,side:1,a:N.NM,b:P(720,640)},          // 清丽路南行：右转专用道汇入的第 3 车道
+  {road:2,side:-1,a:P(720,645),b:N.NM},         // 清丽路北行：公交港湾至路口的第 3 车道
+];
+const ROADX=ROADS.map(()=>({'1':[],'-1':[]}));
+EXTRA.forEach(e=>{const r=ROADS[e.road],a=projectPath(r,e.a).s,b=projectPath(r,e.b).s;ROADX[e.road][e.side].push([Math.min(a,b),Math.max(a,b)]);});
+const hasX=(ri,sd,s)=>ROADX[ri][sd].some(([a,b])=>s>=a&&s<=b);
+const widthAt=(ri,sd,s)=>hasX(ri,sd,s)?XW:RW;
+function splitX(ri,sd,a,b){const c=[a,b];ROADX[ri][sd].forEach(([x,y])=>{if(x>a&&x<b)c.push(x);if(y>a&&y<b)c.push(y);});c.sort((p,q)=>p-q);const o=[];for(let i=0;i<c.length-1;i++)if(c[i+1]-c[i]>0.05)o.push([c[i],c[i+1],hasX(ri,sd,(c[i]+c[i+1])/2)]);return o;}
+
+const JNAMES={NW:['清祥路','清新路'],NM:['清祥路','清丽路'],NE:['清祥路','清庆路'],SM:['清宁路','清丽路'],SE:['清宁路','清庆路']};
+const JUN=Object.keys(JNAMES).map(id=>({id,p:N[id],arms:[]}));
+JUN.forEach(J=>ROADS.forEach(r=>{const i=r.pts.indexOf(J.p);if(i<0)return;[i-1,i+1].forEach(j=>{if(j<0||j>=r.pts.length)return;const u=V.norm(V.sub(r.pts[j],J.p));J.arms.push({u,g:Math.abs(u.x)>Math.abs(u.y)?'EW':'NS'});});}));
+const U1=P(1832,346),U2=P(160,517),U3=ey(1537),UPTS=[U1,U2,U3];
+const CW1=P(1066,346),CWS=[CW1,N.X];
+const BUS=[{p:P(451,346),dir:{x:1,y:0},bay:false},{p:P(1013,346),dir:{x:1,y:0},bay:true},{p:P(720,600),dir:{x:0,y:-1},bay:true}];
+
+const rev=a=>a.slice().reverse();
+// each leg follows one road direction; off = lane centre (m right of centre line)
+// chg = [chart point, new lane, change length m, spoken tip]; tip omitted = generic 自主变道 tip, null = covered by an exam item
+const LINES={
+ 1:{color:'#3b8cff',stop:P(720,550),legs:[
+    {pts:[ey(1755),N.SE,N.SM,...rev(CURVE),N.X,N.NW],off:EXT,chg:[[ey(1738),OUT,18,'自主变道：打左灯，3秒后向左变道，连续变两次到最左侧车道'],[ey(1695),IN,18,null],[P(160,835),OUT,20],[P(160,520),EXT,18,'自主变道：打右灯，3秒后进入右转专用道']],end:'turn'},
+    {pts:[N.NW,N.NM,N.NE,U1],off:EXT,chg:[[P(300,346),OUT,18,'自主变道：打左灯，从右转专用道并入右侧车道'],[P(1105,346),IN,20,null],[P(1205,346),OUT,20,null],[P(1255,346),IN,20,'自主变道：打左灯，3秒后变到左侧车道，准备路口直行']],end:'uturn'},
+    {pts:[U1,N.NE,N.NM],off:OUT,chg:[[P(1770,346),IN,20,null]],end:'turn'},
+    {pts:[N.NM,P(720,720)],off:OUT,chg:[[P(720,455),EXT,18,null],[P(720,505),9.4,14,null]]}],
+  items:[['straight',N.SE],['line',ny(1180)],['straight',N.SM],['meet',ny(480)],['school',ny(330)],['straight',N.X],['right',N.NW],['bus',P(451,346)],['straight',N.NM],['cross',CW1],['overtake',P(1085,346)],['straight',N.NE],['uturn',U1],['lane',P(1815,346)],['straight',N.NE],['cross',CW1],['left',N.NM],['park',P(720,425)]]},
+ 2:{color:'#ff4d5e',stop:P(720,470),legs:[
+    {pts:[P(835,346),N.NE],off:EXT,chg:[[P(868,346),OUT,15,'起步后自主变道：打左灯，3秒后从港湾并入右侧车道']],end:'turn'},
+    {pts:[N.NE,N.SE],off:OUT,chg:[[qy(520),IN,20],[qy(975),OUT,20,'自主变道：打右灯，3秒后变到右侧车道，准备右转']],end:'turn'},
+    {pts:[N.SE,N.SM,...rev(CURVE),N.X,U2],off:OUT,chg:[[ny(612),IN,20,null],[ny(520),OUT,20,null],[ny(470),IN,20]],end:'uturn'},
+    {pts:[U2,N.X,...CURVE,N.SM],off:OUT,chg:[[P(160,585),IN,20,null]],end:'turn'},
+    {pts:[N.SM,P(720,380)],off:OUT,chg:[[P(720,665),EXT,15,'自主变道：打右灯，3秒后进入公交港湾车道'],[P(720,530),9.4,12,null]]}],
+  items:[['cross',CW1],['right',N.NE],['right',N.SE],['line',ny(1180)],['straight',N.SM],['overtake',ny(640)],['school',ny(330)],['straight',N.X],['uturn',U2],['lane',P(160,548)],['straight',N.X],['left',N.SM],['meet',P(720,960)],['bus',P(720,600)],['park',P(720,560)]]},
+ 3:{color:'#b07cff',stop:ny(392),legs:[
+    {pts:[P(305,346),N.NM],off:EXT,chg:[[P(322,346),OUT,15,'起步后自主变道：打左灯，3秒后从右转专用道并入右侧车道']],end:'turn'},
+    {pts:[N.NM,N.SM],off:EXT,chg:[[P(720,470),OUT,18],[P(720,672),IN,20,null]],end:'turn'},
+    {pts:[N.SM,N.SE,U3],off:IN,end:'uturn'},
+    {pts:[U3,N.SE],off:OUT,end:'turn'},
+    {pts:[N.SE,N.NE],off:OUT,chg:[[qy(985),IN,18]],end:'turn'},
+    {pts:[N.NE,N.NM,N.NW],off:IN,end:'turn'},
+    {pts:[N.NW,N.X,...CURVE,ny(560)],off:OUT,chg:[[P(160,472),IN,20,null],[P(160,575),OUT,20,null],[ny(300),5.9,14,null]]}],
+  items:[['bus',P(451,346)],['right',N.NM],['lane',P(720,640)],['left',N.SM],['line',ny(860)],['straight',N.SE],['uturn',U3],['right',N.SE],['left',N.NE],['meet',P(1245,346)],['cross',CW1],['straight',N.NM],['left',N.NW],['overtake',P(160,440)],['school',P(160,690)],['straight',N.X],['park',P(160,1085)]]},
+};
+const NAME={straight:'路口直行',left:'路口左转',right:'路口右转',uturn:'掉头',lane:'变更车道',overtake:'超车',meet:'会车',line:'直线行驶',bus:'公交车站',school:'学校区域',cross:'人行横道',park:'靠边停车'};
+const QUIET={bus:1,school:1,cross:1};   // no examiner voice in the real exam
+const SAY={straight:'前方路口直行',left:'前方路口左转',right:'前方路口右转',uturn:'前方选择合适地点掉头',lane:'前方请变更车道',overtake:'请超越前方车辆',meet:'前方与机动车会车',line:'请保持直线行驶',park:'请靠边停车',bus:'前方公交车站',school:'前方学校区域',cross:'前方人行横道'};
+// operation notes from the chart (image annotations + 考试注意事项)
+const TIP={start:'起步：踩刹车挂D挡，松手刹，打左灯3秒以上再起步',straight:'路口前停车或点刹，确认安全后直行',left:'打左灯3秒以上，路口前停车或点刹，再左转',right:'打右灯3秒以上，路口前停车或点刹，再右转',
+  uturn:'打左灯3秒以上，停车或点刹，确认安全后掉头',lane:'开启左转向灯，3秒后向左变道',overtake:'打左灯，变左道',overtakeBack:'打右灯，回右道',meet:'无需操作，限速30',
+  line:'无需操作，车身走直即可，左右偏离不能超过30公分',park:'打右灯，30秒内停车；回P挡，拉手刹；车身与路边缘小于30公分',
+  bus:'公交站前停车一次，限速30，中途不能停车',school:'无需操作，限速30，不能停车',cross:'人行横道前停车或点刹'};
+const PRE={straight:70,left:70,right:70,uturn:85,cross:45,bus:60,school:25,lane:0,overtake:0,meet:0,line:0,park:0};
+
+function offFn(path,off0,chg){const ks=chg.map(([p,o,r])=>({s:projectPath(path,p).s,o,r})).sort((a,b)=>a.s-b.s);
+  return s=>{let v=off0;for(const k of ks){if(s<=k.s)break;v=v+(k.o-v)*sstep(clamp((s-k.s)/k.r,0,1));}return v;};}
+function locateItem(path,q,from){let found=false,best=1e9,bs=from;
+  for(let i=idxAt(path,from);i<path.pts.length-1;i++){const a=path.pts[i],b=path.pts[i+1],ab=V.sub(b,a),L=path.cum[i+1]-path.cum[i];if(L<1e-6)continue;
+    const k=clamp(V.dot(V.sub(q,a),ab)/(L*L),0,1),s=path.cum[i]+k*L;if(s<from)continue;const d=V.dist(q,V.add(a,V.mul(ab,k)));
+    if(!found){if(d<25){found=true;best=d;bs=s;}}else{if(d<best-1e-3){best=d;bs=s;}else if(d>best+3)break;}}
+  return bs;}
+// lane-accurate guide: legs sampled every metre, joined by turn curves and U-turn arcs
+function buildRoute(n){
+  const L=LINES[n],legs=L.legs.map(lg=>{const path=mkPath(lg.pts);return{lg,path,off:offFn(path,lg.off,lg.chg||[]),s0:0,s1:path.len};});
+  for(let i=0;i<legs.length-1;i++){const A=legs[i],B=legs[i+1];if(A.lg.end!=='turn')continue;
+    const tA=pathAt(A.path,A.path.len).t,tB=pathAt(B.path,0).t,cr=tA.x*tB.y-tA.y*tB.x,oA=A.off(A.path.len),oB=B.off(0);
+    if(cr>0){A.s1=A.path.len-(oB+8);B.s0=oA+8;}else{A.s1=A.path.len-Math.max(4,14-oB);B.s0=Math.max(4,14-oA);}}
+  const smp=[],push=(p,c,nr)=>{const l=smp[smp.length-1];if(l&&Math.hypot(l.x-p.x,l.y-p.y)<0.05)return;smp.push({x:p.x,y:p.y,c,n:nr});};
+  legs.forEach((g,i)=>{
+    const st=Math.max(1,Math.round(g.s1-g.s0));g.idx0=smp.length;g.st=st;
+    for(let k=0;k<=st;k++){const s=g.s0+(g.s1-g.s0)*k/st,a=pathAt(g.path,s),nr=V.right(a.t);push(V.add(a.p,V.mul(nr,g.off(s))),a.p,nr);}
+    const B=legs[i+1];if(!B)return;
+    const aE=pathAt(g.path,g.s1),bS=pathAt(B.path,B.s0),oA=g.off(g.s1),oB=B.off(B.s0);
+    if(g.lg.end==='turn'){const pA=V.add(aE.p,V.mul(V.right(aE.t),oA)),pB=V.add(bS.p,V.mul(V.right(bS.t),oB)),h=0.42*V.dist(pA,pB);
+      const c1=V.add(pA,V.mul(aE.t,h)),c2=V.sub(pB,V.mul(bS.t,h)),m=Math.ceil(V.dist(pA,pB)*1.4);
+      for(let k=1;k<m;k++){const t=k/m,u=1-t,p={x:u*u*u*pA.x+3*u*u*t*c1.x+3*u*t*t*c2.x+t*t*t*pB.x,y:u*u*u*pA.y+3*u*u*t*c1.y+3*u*t*t*c2.y+t*t*t*pB.y};
+        const d={x:3*u*u*(c1.x-pA.x)+6*u*t*(c2.x-c1.x)+3*t*t*(pB.x-c2.x),y:3*u*u*(c1.y-pA.y)+6*u*t*(c2.y-c1.y)+3*t*t*(pB.y-c2.y)};push(p,p,V.right(V.norm(d)));}}
+    else{const U=aE.p,rA=V.right(aE.t),ctr=V.add(U,V.mul(rA,(oA-oB)/2)),rho=(oA+oB)/2,m=Math.ceil(Math.PI*rho*1.5);
+      for(let k=1;k<m;k++){const a=Math.PI*k/m,p=V.add(ctr,V.add(V.mul(rA,rho*Math.cos(a)),V.mul(aE.t,rho*Math.sin(a))));push(p,p,V.right(V.norm(V.add(V.mul(rA,-Math.sin(a)),V.mul(aE.t,Math.cos(a))))));}}
+  });
+  const pts=smp.map(q=>({x:q.x,y:q.y})),cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+V.dist(pts[i-1],pts[i]));
+  const path={pts,cum,len:cum[cum.length-1]};
+  // spoken tips for lane changes that are not part of an exam item (自主变道)
+  const tips=[];legs.forEach(g=>(g.lg.chg||[]).forEach(c=>{if(c[3]===null)return;const sl=projectPath(g.path,c[0]).s,prev=g.off(sl-0.5);
+    const k=Math.round((sl-g.s0)/(g.s1-g.s0)*g.st),sG=cum[clamp(g.idx0+k,0,cum.length-1)];
+    tips.push({s:sG,text:typeof c[3]==='string'?c[3]:(c[1]<prev?'自主变道：打左灯，3秒后向左变道':'自主变道：打右灯，3秒后向右变道')});}));
+  tips.sort((a,b)=>a.s-b.s);
+  let from=0;const items=L.items.map((d,i)=>{const s0=locateItem(path,d[1],from);from=s0+2;return{type:d[0],s0,num:i+4};});
+  const park=items.find(i=>i.type==='park'),sEnd=Math.floor(Math.min(path.len-2,locateItem(path,L.stop,park.s0)));
+  const len=Math.floor(path.len),vmax=new Float32Array(len+1).fill(8.3);
+  const cap=(a,b,v)=>{for(let i=Math.max(0,Math.floor(a));i<=Math.min(len,Math.ceil(b));i++)vmax[i]=Math.min(vmax[i],v);};
+  items.forEach(it=>{const s=it.s0;({left:()=>cap(s-25,s+15,4.2),right:()=>cap(s-25,s+15,4.2),straight:()=>cap(s-30,s+10,6),uturn:()=>cap(s-15,s+25,2.8),
+    cross:()=>cap(s-25,s+5,5.5),bus:()=>cap(s-45,s+25,6.5),school:()=>cap(s-20,s+90,7.5),meet:()=>cap(s,s+110,7.5)}[it.type]||(()=>{}))();});
+  const v=Float32Array.from(vmax);for(let i=Math.floor(sEnd);i<=len;i++)v[i]=0;
+  for(let i=Math.floor(sEnd)-1;i>=0;i--)v[i]=Math.min(v[i],Math.sqrt(v[i+1]*v[i+1]+3.6));
+  for(let i=1;i<=len;i++)v[i]=Math.min(v[i],Math.sqrt(v[i-1]*v[i-1]+2.4));
+  for(let i=0;i<sEnd-2;i++)v[i]=Math.max(v[i],1.2);
+  return{n,color:L.color,path,smp,items,v,sEnd,tips};}
+const ROUTES={1:buildRoute(1),2:buildRoute(2),3:buildRoute(3)};
+const vAt=(r,s)=>{const i=clamp(Math.floor(s),0,r.v.length-2),f=clamp(s-i,0,1);return r.v[i]*(1-f)+r.v[i+1]*f;};
+const posAt=(r,s)=>pathAt(r.path,s).p;
+// a point in another lane at the same place along the route (for the slow car and the oncoming car)
+function laneAt(r,s,lat){const a=pathAt(r.path,s),q=r.smp[a.i],w=r.smp[Math.min(a.i+1,r.smp.length-1)];const c=V.lerp(q.c,w.c,a.f),nr=V.norm(V.lerp(q.n,w.n,a.f));return{p:V.add(c,V.mul(nr,lat)),t:{x:nr.y,y:-nr.x}};}
+
+/* ================= THREE SCENE (low cost) ================= */
+const canvas=$('#gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'low-power'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
+const scene=new THREE.Scene();const FOG='#b8c8b2';
+scene.background=new THREE.Color(FOG);scene.fog=new THREE.Fog(FOG,90,650);
+scene.add(new THREE.HemisphereLight('#f2f7ff','#4d5d3f',1.0));const sun=new THREE.DirectionalLight('#fff6e6',0.55);sun.position.set(-300,500,200);scene.add(sun);
+const M=c=>new THREE.MeshLambertMaterial({color:c});
+const MAT={asph:M('#40474b'),walk:M('#b9b3a6'),white:M('#eeeeea'),yellow:M('#e9bd1d')};
+const MAPC={x:1000*S,y:750*S};
+{const g=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000),M('#5f7f4b'));g.rotation.x=-Math.PI/2;g.position.set(MAPC.x,-0.02,MAPC.y);scene.add(g);}
+
+function Geo(){this.p=[];}
+Geo.prototype.q=function(a,b,c,d){this.p.push(...a,...b,...c,...a,...c,...d);};
+Geo.prototype.mesh=function(mat){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(this.p,3));const n=new Float32Array(this.p.length);for(let i=1;i<n.length;i+=3)n[i]=1;g.setAttribute('normal',new THREE.BufferAttribute(n,3));return new THREE.Mesh(g,mat);};
+function offs(pts){return pts.map((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];const t1=i>0?V.norm(V.sub(p,a)):V.norm(V.sub(b,p));const t2=i<pts.length-1?V.norm(V.sub(b,p)):t1;const r1=V.right(t1),m=V.norm(V.add(r1,V.right(t2)));return V.mul(m,1/Math.max(0.35,V.dot(m,r1)));});}
+function ribbon(g,pts,d1,d2,y){if(d1>d2){const t=d1;d1=d2;d2=t;}const n=offs(pts);for(let i=0;i<pts.length-1;i++){const a1=V.add(pts[i],V.mul(n[i],d1)),a2=V.add(pts[i],V.mul(n[i],d2)),b1=V.add(pts[i+1],V.mul(n[i+1],d1)),b2=V.add(pts[i+1],V.mul(n[i+1],d2));g.q([a1.x,y,a1.y],[a2.x,y,a2.y],[b2.x,y,b2.y],[b1.x,y,b1.y]);}}
+function textTex(lines,bg,fg){const w=512,h=256,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+  x.fillStyle=bg;x.fillRect(0,0,w,h);x.strokeStyle=fg;x.lineWidth=8;x.strokeRect(14,14,w-28,h-28);x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';
+  const ml=Math.max(...lines.map(l=>l.length)),fs=Math.min(h/(lines.length+0.5)*0.85,(w-60)/ml);x.font=`800 ${fs}px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif`;
+  lines.forEach((l,i)=>x.fillText(l,w/2,h/2+(i-(lines.length-1)/2)*fs*1.18));return new THREE.CanvasTexture(c);}
+const poleGeo=new THREE.CylinderGeometry(0.07,0.07,3.4,5),poleMat=M('#8a9398');
+function sign(parent,pos,d,lines,bg,fg){const g=new THREE.Group();const pole=new THREE.Mesh(poleGeo,poleMat);pole.position.y=1.7;g.add(pole);
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(2.8,1.4),new THREE.MeshBasicMaterial({map:textTex(lines,bg||'#1553b4',fg||'#fff'),side:THREE.DoubleSide}));face.position.y=3.4;g.add(face);
+  g.position.set(pos.x,0,pos.y);g.rotation.y=Math.atan2(-d.x,-d.y);parent.add(g);return g;}
+
+// roads, lane markings, junctions
+(function(){
+  const gA=new Geo(),gW=new Geo(),gWh=new Geo(),gY=new Geo();
+  const qa=(g,road,s0,s1,d1,d2,y)=>{if(s1-s0<0.02)return;ribbon(g,subPoly(road,s0,s1),d1,d2,y);};
+  ROADS.forEach((road,ri)=>{
+    const cuts=[];JUN.forEach(J=>{const i=road.pts.indexOf(J.p);if(i>=0)cuts.push({s:road.cum[i],k:'J'});});
+    CWS.forEach(c=>{const pr=projectPath(road,c);if(pr.d<0.5)cuts.push({s:pr.s,k:'C'});});cuts.sort((a,b)=>a.s-b.s);
+    const us=[];UPTS.forEach(u=>{const pr=projectPath(road,u);if(pr.d<0.5)us.push(pr.s);});
+    ribbon(gA,road.pts,-RW,RW,0.01);
+    [1,-1].forEach(sd=>ROADX[ri][sd].forEach(([a,b])=>qa(gA,road,a,b,sd*RW,sd*XW,0.012)));
+    // sidewalks, cut at junctions
+    const jc=cuts.filter(c=>c.k==='J');let a0=0;const pcs=[];jc.forEach(c=>{if(c.s-13>a0+0.5)pcs.push([a0,c.s-13]);a0=c.s+13;});if(road.len>a0+0.5)pcs.push([a0,road.len]);
+    pcs.forEach(([s0,s1])=>[1,-1].forEach(sd=>splitX(ri,sd,s0,s1).forEach(([a,b,x])=>{const w=x?XW:RW;qa(gW,road,a,b,sd*w,sd*(w+2.5),0.05);})));
+    // lane markings between stop lines
+    const stopD=c=>c.k==='J'?R+5:5;let prev=0,pk=null;const links=[];
+    cuts.forEach(c=>{const b=c.s-stopD(c);if(b>prev+0.5)links.push([prev,b,pk,c.k]);prev=c.s+stopD(c);pk=c.k;});if(road.len>prev+0.5)links.push([prev,road.len,pk,null]);
+    const dashes=(a,b,d1,d2,sol)=>{if(sol)qa(gWh,road,Math.max(a,sol[0]),Math.min(b,sol[1]),d1,d2,0.03);for(let x=a;x<b;x+=10){const x1=Math.min(x+4,b);if(sol&&x1>sol[0]&&x<sol[1])continue;qa(gWh,road,x,x1,d1,d2,0.03);}};
+    links.forEach(([a,b,ka,kb])=>{
+      let s=a;us.filter(u=>u>a&&u<b).forEach(u=>{qa(gY,road,s,u-12,-0.3,-0.14,0.03);qa(gY,road,s,u-12,0.14,0.3,0.03);s=u+12;});
+      qa(gY,road,s,b,-0.3,-0.14,0.03);qa(gY,road,s,b,0.14,0.3,0.03);
+      [1,-1].forEach(sd=>{const sol=sd>0?(kb==='J'?[b-30,b]:null):(ka==='J'?[a,a+30]:null);
+        dashes(a,b,sd*3.42,sd*3.58,sol);
+        splitX(ri,sd,a,b).forEach(([p,q,x])=>{if(x){dashes(p,q,sd*6.92,sd*7.08,sol);qa(gWh,road,p,q,sd*10.12,sd*10.28,0.03);}else qa(gWh,road,p,q,sd*6.62,sd*6.78,0.03);});});
+    });
+    const zebra=(s0,s1)=>{const wl=widthAt(ri,-1,(s0+s1)/2),wr=widthAt(ri,1,(s0+s1)/2);for(let d=-wl+0.4;d<wr-0.4;d+=1.1)qa(gWh,road,s0,s1,d,d+0.55,0.03);};
+    const stopL=(s0,sd)=>qa(gWh,road,s0,s0+0.45,sd*0.2,sd*(widthAt(ri,sd,s0)-0.3),0.03);
+    cuts.forEach(c=>{if(c.k==='J'){if(c.s-R-5>0){zebra(c.s-R-4.5,c.s-R-0.5);stopL(c.s-R-5.45,1);}if(c.s+R+5<road.len){zebra(c.s+R+0.5,c.s+R+4.5);stopL(c.s+R+5,-1);}}
+      else{zebra(c.s-2,c.s+2);stopL(c.s-5.45,1);stopL(c.s+5,-1);}});
+  });
+  scene.add(gA.mesh(MAT.asph),gW.mesh(MAT.walk),gWh.mesh(MAT.white),gY.mesh(MAT.yellow));
+  const disk=new THREE.CircleGeometry(15,28),plaza=new THREE.CircleGeometry(18,28);
+  JUN.forEach(J=>{const a=new THREE.Mesh(disk,MAT.asph);a.rotation.x=-Math.PI/2;a.position.set(J.p.x,0.02,J.p.y);scene.add(a);const b=new THREE.Mesh(plaza,MAT.walk);b.rotation.x=-Math.PI/2;b.position.set(J.p.x,0.005,J.p.y);scene.add(b);
+    J.arms.forEach(arm=>{const d=V.mul(arm.u,-1),rt=V.right(d);
+      sign(scene,V.add(V.add(J.p,V.mul(arm.u,R+26)),V.mul(rt,12.2)),d,['前方路口',arm.g==='EW'?JNAMES[J.id][1]:JNAMES[J.id][0]]);
+      // simple signal head, always green (no traffic-light logic in the ride-along)
+      const base=V.add(V.add(J.p,V.mul(d,10)),V.mul(rt,12)),g=new THREE.Group();
+      const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,6,5),M('#59636a'));pole.position.y=3;g.add(pole);
+      const armM=new THREE.Mesh(new THREE.BoxGeometry(5,0.14,0.14),M('#59636a'));armM.position.set(2.5,6,0);g.add(armM);
+      const head=new THREE.Mesh(new THREE.BoxGeometry(0.8,2.2,0.45),M('#111'));head.position.set(4.8,5,0);g.add(head);
+      const lamp=new THREE.Mesh(new THREE.CircleGeometry(0.3,12),new THREE.MeshBasicMaterial({color:'#22e36b'}));lamp.position.set(4.8,4.32,-0.24);lamp.rotation.y=Math.PI;g.add(lamp);
+      g.position.set(base.x,0,base.y);g.rotation.y=Math.atan2(arm.u.x,arm.u.y)+Math.PI;scene.add(g);});});
+  // bus stops (yellow box in the kerb lane, shelter on the pavement)
+  BUS.forEach(b=>{const r=V.right(b.dir),w=b.bay?XW:RW,p=V.add(b.p,V.mul(r,w+1.4)),g=new THREE.Group();
+    const roof=new THREE.Mesh(new THREE.BoxGeometry(6,0.12,2),M('#2f6fb5'));roof.position.y=2.6;g.add(roof);
+    const back=new THREE.Mesh(new THREE.BoxGeometry(6,2.2,0.08),M('#9cc3d6'));back.position.set(0,1.4,-0.9);g.add(back);
+    g.position.set(p.x,0,p.y);g.rotation.y=Math.atan2(r.x,r.y)+Math.PI;scene.add(g);
+    sign(scene,V.add(V.add(b.p,V.mul(b.dir,-8)),V.mul(r,w+1.4)),b.dir,['公交车站'],'#1553b4');
+    const road=ROADS.find(rd=>projectPath(rd,b.p).d<0.5),pr=projectPath(road,b.p),sd=V.dot(pr.t,b.dir)>0?1:-1,gy=new Geo(),i0=w-3.3,i1=w-0.45;
+    const qb=(s0,s1,d1,d2)=>ribbon(gy,subPoly(road,s0,s1),d1,d2,0.035);
+    qb(pr.s-15,pr.s+15,sd*i0,sd*(i0+0.2));qb(pr.s-15,pr.s+15,sd*(i1-0.2),sd*i1);qb(pr.s-15,pr.s-14.8,sd*i0,sd*i1);qb(pr.s+14.8,pr.s+15,sd*i0,sd*i1);scene.add(gy.mesh(MAT.yellow));});
+  // forest: one instanced cone mesh, roadside rows plus scattered trees
+  const spots=[],near=(p,m)=>ROADS.some(r=>projectPath(r,p).d<m);
+  ROADS.forEach(road=>{for(let s=4;s<road.len-4;s+=11){const a=pathAt(road,s),rt=V.right(a.t);[1,-1].forEach(sd=>{[16,24].forEach((dd,k)=>{const p=V.add(a.p,V.mul(rt,sd*(dd+((s*7+k*5)%5))));if(!near(p,15)&&!JUN.some(J=>V.dist(J.p,p)<28))spots.push(p);});});}});
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<1400;i++){const p={x:MAPC.x+(rnd()-0.5)*1500,y:MAPC.y+(rnd()-0.5)*950};if(!near(p,19))spots.push(p);}
+  const trees=new THREE.InstancedMesh(new THREE.ConeGeometry(2.4,8,6),M('#ffffff'),spots.length);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),col=new THREE.Color();
+  spots.forEach((p,i)=>{const k=0.75+rnd()*0.6;m4.compose(new THREE.Vector3(p.x,4*k,p.y),q,new THREE.Vector3(k,k,k));trees.setMatrixAt(i,m4);trees.setColorAt(i,col.setHSL(0.27+rnd()*0.08,0.45,0.22+rnd()*0.1));});
+  scene.add(trees);
+})();
+
+/* cars */
+function makeCar(color){const g=new THREE.Group();const lo=new THREE.Mesh(new THREE.BoxGeometry(4.5,0.72,1.8),M(color));lo.position.y=0.62;g.add(lo);
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.62,1.62),M('#1c2a33'));cab.position.set(-0.25,1.28,0);g.add(cab);return g;}
+const cam=new THREE.PerspectiveCamera(66,1,0.1,900);
+const routeG=new THREE.Group();scene.add(routeG);
+
+/* ================= STATE ================= */
+const G={r:null,s:0,t:0,speed:1,playing:false,all:true,voice:true,idx:0,camYaw:0,npcs:[],fired:{},endT:null,started:false,rate:1,slowMo:true};
+// speech speed levels (1 = the device's normal speed; iPad's normal voice is quick, so default to 慢)
+const RATES=[{r:0.65,label:'很慢'},{r:0.8,label:'慢'},{r:1.0,label:'正常'}];
+G.rate=1;
+try{const sv=JSON.parse(localStorage.getItem('bt-guide')||'{}');if(sv.rate!==undefined)G.rate=clamp(sv.rate,0,2);if(sv.slowMo!==undefined)G.slowMo=!!sv.slowMo;}catch(e){}
+const savePrefs=()=>{try{localStorage.setItem('bt-guide',JSON.stringify({rate:G.rate,slowMo:G.slowMo}));}catch(e){}};
+const speaking=()=>Voice.busy||Voice.q.length>0;
+const TALK_MAX=1.5;   // fastest playback allowed while the examiner or a tip is speaking
+const Voice={q:[],busy:false,v:null,
+  pick(){if(!('speechSynthesis' in window))return;const vs=speechSynthesis.getVoices();this.v=vs.find(v=>/zh[-_]CN/i.test(v.lang))||vs.find(v=>/^zh/i.test(v.lang))||null;},
+  // kind: 'exam' = examiner, 'tip' = operation tip, 'quiet' = item with no examiner voice; until = route metre after which it is stale
+  say(text,kind,until){if(this.q.length>3)this.q.shift();this.q.push({text,kind:kind||'exam',until:until===undefined?1e9:until});if(!this.busy)this.next();},
+  next(){let it=this.q.shift();while(it&&G.s>it.until)it=this.q.shift();if(!it){this.busy=false;return;}this.busy=true;const sub=$('#sub');sub.textContent=it.text;sub.classList.toggle('quiet',it.kind!=='exam');sub.hidden=false;$('#note').hidden=it.kind!=='quiet';
+    let done=false;const fin=()=>{if(done)return;done=true;clearTimeout(tm);this.busy=false;setTimeout(()=>{if(!this.busy){sub.hidden=true;$('#note').hidden=true;}},1600);this.next();};
+    const rate=RATES[G.rate].r;
+    const tm=setTimeout(fin,2000+it.text.length*420/rate);   // safety net in case the browser never reports the end
+    if(G.voice&&'speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(it.text);u.lang='zh-CN';if(this.v)u.voice=this.v;u.rate=rate;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);}catch(e){}}
+    else{clearTimeout(tm);setTimeout(fin,900+it.text.length*200);}},
+  clear(){this.q=[];this.busy=false;try{speechSynthesis.cancel();}catch(e){}$('#sub').hidden=true;$('#note').hidden=true;}};
+if('speechSynthesis' in window){Voice.pick();speechSynthesis.onvoiceschanged=()=>Voice.pick();}
+
+function clearNpcs(){G.npcs.forEach(n=>routeG.remove(n.mesh));G.npcs=[];}
+function loadLine(n,s){
+  Voice.clear();clearNpcs();while(routeG.children.length)routeG.remove(routeG.children[0]);
+  const r=ROUTES[n];G.r=r;G.s=s||0;G.endT=null;G.fired={};G.holdUntil=s?0:G.t+6;G.startHold=!s;
+  r.items.forEach(it=>{if(it.s0<G.s){G.fired['a'+it.num]=G.fired['d'+it.num]=G.fired['n'+it.num]=1;}});
+  r.tips.forEach((tp,i)=>{if(tp.s<G.s)G.fired['t'+i]=1;});
+  const g=new Geo();ribbon(g,r.path.pts,-0.3,0.3,0.045);routeG.add(g.mesh(new THREE.MeshBasicMaterial({color:r.color,transparent:true,opacity:0.5,depthWrite:false})));
+  const at=s=>laneAt(r,s,12.5);
+  let a=at(14);sign(routeG,a.p,a.t,[`${n}号线`,'起点'],'#0f7a4a');
+  a=at(r.sEnd+8);sign(routeG,a.p,a.t,[`${n}号线`,'终点'],'#1553b4');
+  r.items.filter(i=>i.type==='school').forEach(it=>{a=at(it.s0-26);sign(routeG,a.p,a.t,['学校区域','限速30'],'#ffd23f','#1b1b1b');});
+  const p0=posAt(r,G.s),p1=posAt(r,G.s+8);G.camYaw=Math.atan2(p1.y-p0.y,p1.x-p0.x);
+  $$('[data-line]').forEach(b=>b.classList.toggle('on',+b.dataset.line===n));
+  renderItems();if(!s){Voice.say(`${n}号线，考试开始，请起步`,'exam');Voice.say(TIP.start,'tip');}
+}
+function jumpTo(it){const r=G.r;const target=Math.max(0,it.s0-(PRE[it.type]||0)-15);loadLine(r.n,target);G.playing=true;syncBtns();}
+function stepItem(dir){const r=G.r;const cur=r.items.findIndex(i=>i.s0>G.s+2);
+  if(dir>0){const it=cur<0?null:r.items[cur];if(it)jumpTo(it);}
+  else{const k=(cur<0?r.items.length:cur)-2;if(k>=0)jumpTo(r.items[k]);else loadLine(r.n,0);}}
+
+/* ================= STEP ================= */
+function step(dt){
+  const r=G.r;if(!r)return;G.t+=dt;
+  if(G.endT!==null){if(G.t-G.endT>3.5){G.endT=null;if(G.all&&r.n<3)loadLine(r.n+1);else{G.playing=false;syncBtns();$('#doneTitle').textContent=G.all?'三條路線播放完畢':`${r.n}号线播放完畢`;$('#done').hidden=false;}}return;}
+  // wait at the start line until the 起步 instructions and the first lane-change tip have been read
+  if(G.startHold&&G.t>=G.holdUntil&&!Voice.busy&&!Voice.q.length)G.startHold=false;
+  const v=G.startHold?0:vAt(r,G.s);G.v=v;G.s=Math.min(r.sEnd,G.s+v*dt);
+  r.tips.forEach((tp,i)=>{if(!G.fired['t'+i]&&G.s>=tp.s-30){G.fired['t'+i]=1;Voice.say(tp.text,'tip',tp.s+40);}});
+  r.items.forEach(it=>{const ds=G.s-it.s0,k=it.num;
+    if(!G.fired['a'+k]&&ds>=-(PRE[it.type]||0)){G.fired['a'+k]=1;Voice.say(SAY[it.type],QUIET[it.type]?'quiet':'exam',it.s0+30);Voice.say(TIP[it.type],'tip',it.s0+40);renderItems();
+      if(it.type==='overtake')spawnNpc(G.s+30,OUT,2.0,'#2f6fd6');
+      if(it.type==='meet')spawnNpc(it.s0+110,-OUT,-7,'#c9483b');}
+    if(!G.fired['n'+k]){const after={bus:15,school:90,meet:95,overtake:60,line:120}[it.type];if(after!==undefined&&ds>=after){G.fired['n'+k]=1;
+      Voice.say({bus:'已通过公交车站',school:'已通过学校区域',meet:'会车完毕',overtake:'已超越前方车辆',line:'结束直线行驶'}[it.type],QUIET[it.type]?'quiet':'exam',it.s0+after+40);
+      if(it.type==='overtake')Voice.say(TIP.overtakeBack,'tip',it.s0+after+45);}}
+    if(!G.fired['d'+k]&&ds>=(it.type==='park'?55:15)){G.fired['d'+k]=1;renderItems();}});
+  G.npcs=G.npcs.filter(n=>{n.s+=n.v*dt;if(n.s<0||n.s>r.path.len||n.s<G.s-120){routeG.remove(n.mesh);return false;}placeNpc(n);return true;});
+  if(G.s>=r.sEnd-0.05&&G.endT===null){G.endT=G.t;Voice.say('考试结束，请下车');r.items.forEach(it=>G.fired['d'+it.num]=1);renderItems();}
+}
+function spawnNpc(s,lat,v,color){const m=makeCar(color);routeG.add(m);const n={s,lat,v,mesh:m};G.npcs.push(n);placeNpc(n);}
+function placeNpc(n){const a=laneAt(G.r,n.s,n.lat);n.mesh.position.set(a.p.x,0,a.p.y);n.mesh.rotation.y=-(Math.atan2(a.t.y,a.t.x)+(n.v<0?Math.PI:0));}
+
+/* ================= RENDER ================= */
+const VIEW={W:innerWidth,H:innerHeight};
+function layout(){const vv=window.visualViewport,w=Math.round(vv?vv.width:innerWidth),h=Math.round(vv?vv.height:innerHeight);
+  const app=$('#app');app.style.width=w+'px';app.style.height=h+'px';
+  const sc=clamp(Math.min(w/1280,h/800),0.5,1.6),hud=$('#hud');hud.style.width=(w/sc)+'px';hud.style.height=(h/sc)+'px';hud.style.transform=`scale(${sc})`;
+  $('#rotate').hidden=!(h>w&&matchMedia('(pointer:coarse)').matches);
+  VIEW.W=w;VIEW.H=h;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+addEventListener('resize',layout);addEventListener('orientationchange',()=>setTimeout(layout,300));if(window.visualViewport)visualViewport.addEventListener('resize',layout);
+function render(dt){
+  const r=G.r;if(!r){renderer.render(scene,cam);return;}
+  const p=posAt(r,G.s),ahead=posAt(r,G.s+9);const yawT=Math.atan2(ahead.y-p.y,ahead.x-p.x);
+  G.camYaw+=wrapA(yawT-G.camYaw)*Math.min(1,dt*5);const f={x:Math.cos(G.camYaw),y:Math.sin(G.camYaw)},rt=V.right(f);
+  const e=V.add(V.add(p,V.mul(f,-0.3)),V.mul(rt,-0.38));cam.position.set(e.x,1.25,e.y);const l=V.add(e,V.mul(f,20));cam.lookAt(l.x,-0.1,l.y);
+  renderer.render(scene,cam);
+}
+
+/* ================= HUD ================= */
+function renderItems(){const r=G.r;if(!r)return;const act=r.items.find(it=>G.fired['a'+it.num]&&!G.fired['d'+it.num]);
+  const rows=[`<button type="button" class="done" disabled><span class="n">1</span><span>上车准备</span></button>`,`<button type="button" class="done" disabled><span class="n">2</span><span>模拟灯光</span></button>`,`<button type="button" class="${G.s>30?'done':'active'}" data-j="-1"><span class="n">3</span><span>起步</span></button>`,
+    ...r.items.map((it,i)=>`<button type="button" data-j="${i}" class="${it===act?'active':G.fired['d'+it.num]?'done':''}"><span class="n">${it.num}</span><span>${NAME[it.type]}</span>${QUIET[it.type]?'<span class="tag">無語音</span>':''}</button>`)];
+  const box=$('#items');box.innerHTML=rows.join('');const a=box.querySelector('.active');if(a)a.scrollIntoView({block:'nearest'});}
+$('#items').addEventListener('click',e=>{const b=e.target.closest('[data-j]');if(!b)return;const j=+b.dataset.j;if(j<0){loadLine(G.r.n,0);G.playing=true;syncBtns();}else jumpTo(G.r.items[j]);});
+let hudT=0;
+function updHUD(){const r=G.r;if(!r)return;
+  $('#spd').firstChild.nodeValue=String(Math.round((G.endT!==null?0:(G.playing?G.v||0:0))*3.6*(G.slowNow?0.35:1)));
+  const tag=$('#slowTag'),showTag=G.talking&&(G.slowMo||G.speed>TALK_MAX);tag.hidden=!showTag;
+  if(showTag)tag.textContent=G.slowMo?'慢動作 · 等語音讀完':`語音中 · 暫時 ×${TALK_MAX}`;
+  if(G.t-hudT<0.15&&G.playing)return;hudT=G.t;
+  $('#stLine').textContent=`${r.n}号线`;$('#progBar').style.width=(G.s/r.sEnd*100).toFixed(1)+'%';
+  const nx=r.items.find(it=>it.s0-(PRE[it.type]||0)>G.s);
+  $('#stSub').textContent=`已行駛 ${Math.round(G.s)} m / 全程 ${Math.round(r.sEnd)} m`;
+  const nEl=$('#next');if(nx&&G.endT===null){const d=Math.round(nx.s0-G.s);nEl.textContent=`下一項：${nx.num} ${NAME[nx.type]} · ${d} m`;nEl.hidden=false;}else nEl.hidden=true;
+  drawMap();}
+const MB0=(()=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;ROADS.forEach(r=>r.pts.forEach(p=>{x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}));return{x0:x0-20,y0:y0-20,w:x1-x0+40,h:y1-y0+40};})();
+function drawMap(){const cv=$('#mini'),x=cv.getContext('2d'),W=cv.width,H=cv.height,pad=18,r=G.r;
+  const sc=Math.min((W-2*pad)/MB0.w,(H-2*pad)/MB0.h),ox=(W-MB0.w*sc)/2,oy=(H-MB0.h*sc)/2,T=p=>[ox+(p.x-MB0.x0)*sc,oy+(p.y-MB0.y0)*sc];
+  x.fillStyle='#223a2d';x.fillRect(0,0,W,H);x.lineCap=x.lineJoin='round';x.strokeStyle='#76857c';x.lineWidth=9;
+  ROADS.forEach(rd=>{x.beginPath();rd.pts.forEach((p,i)=>{const[a,b]=T(p);i?x.lineTo(a,b):x.moveTo(a,b);});x.stroke();});
+  x.strokeStyle=r.color;x.lineWidth=3;x.beginPath();r.path.pts.forEach((p,i)=>{const[a,b]=T(p);i?x.lineTo(a,b):x.moveTo(a,b);});x.stroke();
+  r.items.forEach(it=>{const[u,v]=T(pathAt(r.path,it.s0).p);x.fillStyle=G.fired['d'+it.num]?'#34d399':QUIET[it.type]?'#7cc4ff':'#ffffff';x.beginPath();x.arc(u,v,8,0,7);x.fill();
+    x.fillStyle='#0b1210';x.font='700 10px Oxanium, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(it.num,u,v+0.5);});
+  const p=posAt(r,G.s),[u,v]=T(p);x.save();x.translate(u,v);x.rotate(G.camYaw);x.fillStyle='#ffb400';x.beginPath();x.moveTo(12,0);x.lineTo(-7,-7);x.lineTo(-7,7);x.closePath();x.fill();x.restore();}
+
+/* ================= CONTROLS ================= */
+function syncBtns(){$('#bPlay').textContent=G.playing?'⏸ 暫停':'▶ 播放';$$('[data-spd]').forEach(b=>b.classList.toggle('on',+b.dataset.spd===G.speed));$('#bAll').classList.toggle('on',G.all);$('#bVoice').classList.toggle('on',G.voice);
+  $('#bRate').textContent='語速 '+RATES[G.rate].label;$('#bSlow').classList.toggle('on',G.slowMo);}
+$('#bRate').addEventListener('click',blurAfter(()=>{G.rate=(G.rate+1)%RATES.length;savePrefs();syncBtns();}));
+$('#bSlow').addEventListener('click',blurAfter(()=>{G.slowMo=!G.slowMo;savePrefs();syncBtns();}));
+const blurAfter=fn=>e=>{fn(e);e.currentTarget.blur();};
+$$('[data-line]').forEach(b=>b.addEventListener('click',blurAfter(()=>{$('#done').hidden=true;G.all=false;loadLine(+b.dataset.line);G.playing=true;syncBtns();})));
+$$('[data-spd]').forEach(b=>b.addEventListener('click',blurAfter(()=>{G.speed=+b.dataset.spd;syncBtns();})));
+$('#bPlay').addEventListener('click',blurAfter(()=>{G.playing=!G.playing;if(!G.playing)Voice.clear();syncBtns();}));
+$('#bPrev').addEventListener('click',blurAfter(()=>stepItem(-1)));$('#bNext').addEventListener('click',blurAfter(()=>stepItem(1)));
+$('#bAll').addEventListener('click',blurAfter(()=>{G.all=!G.all;syncBtns();}));
+$('#bVoice').addEventListener('click',blurAfter(()=>{G.voice=!G.voice;if(!G.voice)try{speechSynthesis.cancel();}catch(e){}syncBtns();}));
+let first='all';
+$$('#startSeg button').forEach(b=>b.addEventListener('click',()=>{first=b.dataset.first;$$('#startSeg button').forEach(x=>x.classList.toggle('on',x===b));}));
+$('#bStart').addEventListener('click',()=>{$('#start').hidden=true;G.all=first==='all';loadLine(first==='all'?1:+first);G.playing=true;syncBtns();});
+$('#bAgain').addEventListener('click',()=>{$('#done').hidden=true;G.all=true;loadLine(1);G.playing=true;syncBtns();});
+addEventListener('keydown',e=>{if(!$('#start').hidden)return;
+  if(e.code==='Space'){e.preventDefault();$('#bPlay').click();}else if(e.code==='ArrowRight')stepItem(1);else if(e.code==='ArrowLeft')stepItem(-1);
+  else if(/^Digit[123]$/.test(e.code)){G.all=false;loadLine(+e.code.slice(5));G.playing=true;syncBtns();}});
+
+/* ================= LOOP ================= */
+layout();loadLine(1);Voice.clear();syncBtns();
+let last=performance.now();
+function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;
+  // slow motion while the examiner or a tip is being read, so the car doesn't outrun the voice
+  // while anything is being read: speed is capped at ×1.5 (×2 drops to ×1.5), and slow motion (if on) slows it further
+  G.talking=G.playing&&G.endT===null&&!G.startHold&&speaking();
+  G.slowNow=G.talking&&G.slowMo;
+  G.mult=G.talking?Math.min(G.speed,TALK_MAX)*(G.slowMo?0.35:1):G.speed;
+  if(G.playing&&$('#start').hidden)step(dt*G.mult);render(dt);updHUD();}
+requestAnimationFrame(frame);
+</script>
+</body></html>
